@@ -1,13 +1,54 @@
-const CACHE='manutencao-jbs-v1-1-1-teste';
-const FILES=['./','./index.html','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
-self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(FILES)).then(()=>self.skipWaiting())));
-self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith('manutencao-jbs-')&&k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
-self.addEventListener('fetch',e=>{
- const r=e.request;if(r.method!=='GET')return;
- const u=new URL(r.url);if(u.origin!==self.location.origin||!u.pathname.startsWith(new URL('./',self.registration.scope).pathname))return;
- if(r.mode==='navigate'){
-  e.respondWith(caches.match('./index.html').then(saved=>saved||fetch(r)));
-  return;
- }
- e.respondWith(caches.match(r).then(saved=>saved||fetch(r)));
+const CACHE = 'manutencao-jbs-teste-v1-1-2';
+const APP = new URL('./index.html', self.registration.scope).href;
+const HOME = new URL('./', self.registration.scope).href;
+
+self.addEventListener('install', event => {
+  event.waitUntil(
+    caches.open(CACHE)
+      .then(cache => cache.add(APP))
+      .then(() => self.skipWaiting())
+  );
+});
+
+self.addEventListener('activate', event => {
+  event.waitUntil(
+    caches.keys()
+      .then(keys => Promise.all(
+        keys.filter(key =>
+          key.startsWith('manutencao-jbs-') && key !== CACHE
+        ).map(key => caches.delete(key))
+      ))
+      .then(() => self.clients.claim())
+  );
+});
+
+self.addEventListener('fetch', event => {
+  const request = event.request;
+  if (request.method !== 'GET') return;
+
+  const url = new URL(request.url);
+  if (url.origin !== self.location.origin) return;
+  if (!url.href.startsWith(self.registration.scope)) return;
+
+  if (request.mode === 'navigate') {
+    event.respondWith(
+      fetch(request, { cache: 'no-store' })
+        .then(response => {
+          if (response.ok) {
+            const copy = response.clone();
+            caches.open(CACHE).then(cache => cache.put(APP, copy));
+          }
+          return response;
+        })
+        .catch(async () => {
+          const cache = await caches.open(CACHE);
+          return (await cache.match(APP)) || Response.error();
+        })
+    );
+    return;
+  }
+
+  event.respondWith(
+    fetch(request).catch(() => caches.match(request))
+  );
 });
