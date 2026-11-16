@@ -92,28 +92,53 @@ if(systemTheme){if(systemTheme.addEventListener)systemTheme.addEventListener('ch
 applyAppearance();
 populate();render();
 
-// Atualização: PWA usa o service worker; APK é atualizado por instalação de nova versão.
-const APP_VERSION='1.1.1-teste';
+// Atualização automática do PWA: consulta a versão publicada ao abrir.
+// O arquivo publicado deve ter APP_VERSION diferente a cada nova atualização.
+const APP_VERSION='1.2.0-teste';
 const updateButton=document.getElementById('checkUpdates');
 const updateStatus=document.getElementById('updateStatus');
+let checkingUpdates=null;
 function updateMessage(message){if(updateStatus)updateStatus.textContent=message;}
-if(updateButton)updateButton.addEventListener('click',async()=>{
-  if(location.protocol==='file:' || location.protocol==='https:' && typeof AndroidShare!=='undefined'){
-    updateMessage('APK: novas versões são instaladas sobre a anterior, usando a mesma assinatura.');return;
+async function checkForUpdates(manual=false){
+  if(location.protocol==='file:' || typeof AndroidShare!=='undefined'){
+    if(manual)updateMessage('No APK, as atualizações dependem da instalação de uma nova versão.');
+    return;
   }
   if(!('serviceWorker' in navigator)){
-    updateMessage('Atualização automática indisponível neste navegador.');return;
+    if(manual)updateMessage('Verificação indisponível neste navegador.');
+    return;
   }
-  if(!navigator.onLine){updateMessage('Sem internet. Você continua usando a versão salva.');return;}
-  updateMessage('Verificando atualizações…');
-  try{
-    const reg=await navigator.serviceWorker.getRegistration('./');
-    if(!reg){updateMessage('Reabra a página após a instalação inicial.');return;}
-    await reg.update();
-    updateMessage(reg.waiting?'Atualização disponível. Feche e abra o aplicativo.':'Verificação concluída. Se houver nova versão, feche e abra o aplicativo.');
-  }catch(e){updateMessage('Não foi possível verificar. Tente quando estiver conectado.');}
-});
+  if(!navigator.onLine){
+    if(manual)updateMessage('Sem internet. Você continua usando a versão salva.');
+    return;
+  }
+  if(checkingUpdates)return checkingUpdates;
+  checkingUpdates=(async()=>{
+    if(manual)updateMessage('Verificando atualizações…');
+    try{
+      const registration=await navigator.serviceWorker.register('./sw.js');
+      await registration.update();
+      const response=await fetch('./index.html?verificar='+Date.now(),{cache:'no-store'});
+      if(!response.ok)throw new Error('Resposta inválida');
+      const html=await response.text();
+      const match=html.match(/const APP_VERSION='([^']+)'/);
+      if(!match)throw new Error('Versão não encontrada');
+      const publishedVersion=match[1];
+      if(publishedVersion!==APP_VERSION){
+        updateMessage('Nova versão encontrada! Atualizando…');
+        // O SW utiliza rede primeiro para páginas e guarda a cópia para uso offline.
+        location.reload();
+        return;
+      }
+      if(manual)updateMessage('Seu aplicativo está atualizado! Versão '+APP_VERSION+'.');
+    }catch(e){
+      if(manual)updateMessage('Não foi possível verificar agora. Tente novamente com internet.');
+    }finally{checkingUpdates=null;}
+  })();
+  return checkingUpdates;
+}
+if(updateButton)updateButton.addEventListener('click',()=>checkForUpdates(true));
 if('serviceWorker' in navigator && location.protocol==='https:'){
-  window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
+  window.addEventListener('load',()=>checkForUpdates(false));
 }
 </script></body></html>
