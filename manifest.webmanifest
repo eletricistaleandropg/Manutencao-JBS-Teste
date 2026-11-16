@@ -1,0 +1,26 @@
+{
+  "id": "./",
+  "name": "Manutenção JBS — Escalas 2×2 e 12×36",
+  "short_name": "Manutenção JBS",
+  "description": "Calendário de escalas de trabalho 2×2 e 12×36, disponível offline após a primeira visita.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0b1220",
+  "theme_color": "#183153",
+  "lang": "pt-BR",
+  "icons": [
+    {
+      "src": "./icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
