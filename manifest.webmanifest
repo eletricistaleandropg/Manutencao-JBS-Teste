@@ -1,7 +1,7 @@
 {
   "id": "./",
-  "name": "Manutenção JBS — Escalas 2×2 e 12×36",
-  "short_name": "Manutenção JBS",
+  "name": "Escala JBS",
+  "short_name": "Escala JBS",
   "description": "Calendário de escalas de trabalho 2×2 e 12×36, disponível offline após a primeira visita.",
   "start_url": "./",
   "scope": "./",
