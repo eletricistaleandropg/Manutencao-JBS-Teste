@@ -1,8 +1,10 @@
- // Escala JBS - ambiente de testes, versão 1.4.
+ // Escala JBS - ambiente de testes, versão 1.5.
  // Rede primeiro; arquivos essenciais disponíveis offline.
- const CACHE = 'manutencao-jbs-teste-v1-4-0';
+
+ const CACHE = 'manutencao-jbs-teste-v1-5-0';
  const SCOPE = self.registration.scope;
  const APP = new URL('./index.html', SCOPE).href;
+
  const ASSETS = [
    APP,
    new URL('./manifest.webmanifest', SCOPE).href,
@@ -22,8 +24,10 @@
    event.waitUntil(
      caches.keys()
        .then(keys => Promise.all(
-         keys.filter(key => key.startsWith('manutencao-jbs-') && key !== CACHE)
-             .map(key => caches.delete(key))
+         keys.filter(key =>
+           key.startsWith('manutencao-jbs-') &&
+           key !== CACHE
+         ).map(key => caches.delete(key))
        ))
        .then(() => self.clients.claim())
    );
@@ -31,23 +35,40 @@
 
  self.addEventListener('fetch', event => {
    const request = event.request;
+
    if (request.method !== 'GET') return;
 
    const url = new URL(request.url);
-   if (url.origin !== self.location.origin || !url.href.startsWith(SCOPE)) return;
+
+   if (
+     url.origin !== self.location.origin ||
+     !url.href.startsWith(SCOPE)
+   ) return;
 
    if (request.mode === 'navigate') {
      event.respondWith(
-       fetch(request, { cache: 'no-store' }).then(response => {
-         if (response.ok) {
-           const copy = response.clone();
-           event.waitUntil(caches.open(CACHE).then(cache => cache.put(APP, copy)));
-         }
-         return response;
-       }).catch(async () => (await caches.match(APP)) || Response.error())
+       fetch(request, { cache: 'no-store' })
+         .then(response => {
+           if (response.ok) {
+             const copy = response.clone();
+
+             event.waitUntil(
+               caches.open(CACHE)
+                 .then(cache => cache.put(APP, copy))
+             );
+           }
+
+           return response;
+         })
+         .catch(async () =>
+           (await caches.match(APP)) || Response.error()
+         )
      );
+
      return;
    }
 
-   event.respondWith(fetch(request).catch(() => caches.match(request)));
+   event.respondWith(
+     fetch(request).catch(() => caches.match(request))
+   );
  });
